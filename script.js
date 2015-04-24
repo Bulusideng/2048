@@ -1,35 +1,48 @@
 // VALUES
 
-var grid, gridElem = document.getElementById("grid");
+var SIZE_X = 4;
+var SIZE_Y = 4;
 
-var touchElem = document.getElementById("touch");
 
-var score = 0, sum = 0,
-	scoreElem = document.getElementById("score");
 
-var infoText = document.getElementById("text");
+var currentSumLabel = document.getElementById("current_sum");
+var ramdomSumLabel = document.getElementById("random_sum");
 
-var level = 0,
-	levelText = infoText.getElementsByTagName("p")[0],
-	levelBar = document.getElementById("bar").getElementsByTagName("div")[0];
+var matrixValue;
+var matrixGrid = document.getElementById("div_grid");
 
-var best = 0,
-	bestElem = infoText.getElementsByTagName("p")[1];
+var elem_touch = document.getElementById("div_touch");
 
-var shareElem = document.getElementById("share");
+var infoText = document.getElementById("div_staus");
 
-// GRID FUNCTIONS
+var level = 0;
+var levelText = infoText.getElementsByTagName("p")[0];
+var levelBar = document.getElementById("div_bar").getElementsByTagName("div")[0];
 
-function updateGrid() {
+var best = 0;
+var bestElem = infoText.getElementsByTagName("p")[1];
+
+var total_spawn = 0;
+
+var fontSize = 10;
+var DIRECTION = {
+	up 		: 1,
+	right	: 2,
+	left 	: 3,
+	down 	: 4
+}
+
+
+function updateGridDisplay() {
 	var e, x, y;
 
-	for(y = 0; y < 4; y++) {
-		for(x = 0; x < 4; x++) {
-			e = gridElem.getElementsByTagName("div")[(y * 4) + x];
+	for(y = 0; y < SIZE_Y; y++) {
+		for(x = 0; x < SIZE_X; x++) {
+			e = matrixGrid.getElementsByTagName("div")[(y * SIZE_X) + x];
 
-			if(grid[y][x] !== -1) {
-				e.innerHTML = grid[y][x];
-				e.setAttribute("class", "b" + grid[y][x]);
+			if(matrixValue[y][x] !== -1) {
+				e.innerHTML = matrixValue[y][x];
+				e.setAttribute("class", "b" + matrixValue[y][x]);
 			} else {
 				e.innerHTML = "";
 				e.setAttribute("class", "bv");
@@ -39,68 +52,94 @@ function updateGrid() {
 }
 
 function moveGrid(direction) {
-	var x, y, dontTouch = [[0,0,0,0], [0,0,0,0], [0,0,0,0], [0,0,0,0]];
+	var x, y, idx;
 
-	if(direction === 1) {
-		for(y = 3; y >= 0; y--) {
-			for(x = 0; x < 4; x++) {
-				if(y != 0 && grid[y][x] > 0 && dontTouch[y][x] === 0) {
-					if(grid[y - 1][x] === grid[y][x]) {
-						addScore(grid[y][x]);
-						grid[y][x] = -1;
-						grid[y - 1][x] *= 2;
-						dontTouch[y-1][x] = 1;
-					} else if(grid[y - 1][x] === -1) {
-						grid[y - 1][x] = grid[y][x];
-						grid[y][x] = -1;
+	var dontTouch = new Array();
+	for(var y = 0; y < SIZE_Y; y++) {
+		dontTouch[y]=new Array();
+		for(var x = 0; x < SIZE_X; x++){
+			dontTouch[y][x] = 0;
+		}
+	}
+	
+	if(direction === DIRECTION.up) {
+		for(x = 0; x < SIZE_X; x++) {
+			idx = 0;
+			for(y = 1; y < SIZE_Y; y++) {
+				if(matrixValue[y][x] !== -1) {
+					if(matrixValue[idx][x] === -1){
+						matrixValue[idx][x] = matrixValue[y][x];
+						matrixValue[y][x] = -1;
+					} else if(matrixValue[idx][x] === matrixValue[y][x]) {
+						scoreManager.addScore(matrixValue[idx][x]);
+						matrixValue[idx++][x] *= 2;
+						matrixValue[y][x] = -1;
+					} else if(++idx !== y){
+						matrixValue[idx][x] = matrixValue[y][x];
+						matrixValue[y][x] = -1;
 					}
 				}
 			}
 		}
-	} else if(direction === 2) {
-		for(x = 0; x < 4; x++) {
-			for(y = 0; y < 4; y++) {
-				if(x != 3 && grid[y][x] > 0 && dontTouch[y][x] === 0) {
-					if(grid[y][x + 1] === grid[y][x]) {
-						addScore(grid[y][x]);
-						grid[y][x] = -1;
-						grid[y][x + 1] *= 2;
-						dontTouch[y][x+1] = 1;
-					} else if(grid[y][x + 1] === -1) {
-						grid[y][x + 1] = grid[y][x];
-						grid[y][x] = -1;
+	} else if(direction === DIRECTION.right) {
+		for(y = 0; y < SIZE_Y; y++) {
+			idx = SIZE_X - 1;
+			console.log("X before:", matrixValue[y]);
+			for(x = SIZE_X-2; x >= 0; x--) {
+				if(matrixValue[y][x] !== -1) {
+					if(matrixValue[y][idx] === -1){
+						matrixValue[y][idx] = matrixValue[y][x];
+						matrixValue[y][x] = -1;
+					} else if(matrixValue[y][idx] === matrixValue[y][x]) {
+						scoreManager.addScore(matrixValue[y][idx]);
+						matrixValue[y][idx--] *= 2;
+						matrixValue[y][x] = -1;
+					} else if(--idx !== x){
+						matrixValue[y][idx] = matrixValue[y][x];
+						matrixValue[y][x] = -1;
 					}
 				}
 			}
+			console.log("X after:", matrixValue[y]);
+			console.log("*****************************");
 		}
-	} else if(direction === 3) {
-		for(x = 3; x >= 0; x--) {
-			for(y = 3; y >= 0; y--) {
-				if(x != 0 && grid[y][x] > 0 && dontTouch[y][x] === 0) {
-					if(grid[y][x - 1] === grid[y][x]) {
-						addScore(grid[y][x]);
-						grid[y][x] = -1;
-						grid[y][x - 1] *= 2;
-						dontTouch[y][x-1] = 1;
-					} else if(grid[y][x - 1] === -1) {
-						grid[y][x - 1] = grid[y][x];
-						grid[y][x] = -1;
+	} else if(direction === DIRECTION.left) {
+		for(y = 0; y < SIZE_Y; y++) {
+			idx = 0;
+			console.log("X before:", matrixValue[y]);
+			for(x = 1; x < SIZE_X; x++) {
+				if(matrixValue[y][x] !== -1) {
+					if(matrixValue[y][idx] === -1){
+						matrixValue[y][idx] = matrixValue[y][x];
+						matrixValue[y][x] = -1;
+					} else if(matrixValue[y][idx] === matrixValue[y][x]) {
+						scoreManager.addScore(matrixValue[y][idx]);
+						matrixValue[y][idx++] *= 2;
+						matrixValue[y][x] = -1;
+					} else if(++idx !== x){
+						matrixValue[y][idx] = matrixValue[y][x];
+						matrixValue[y][x] = -1;
 					}
 				}
 			}
+			console.log("X after:", matrixValue[y]);
+			console.log("*****************************");
 		}
-	} else if(direction === 4) {
-		for(y = 0; y < 4; y++) {
-			for(x = 3; x >= 0; x--) {
-				if(y != 3 && grid[y][x] > 0 && dontTouch[y][x] === 0) {
-					if(grid[y + 1][x] === grid[y][x]) {
-						addScore(grid[y][x]);
-						grid[y][x] = -1;
-						grid[y + 1][x] *= 2;
-						dontTouch[y+1][x] = 1;
-					} else if(grid[y + 1][x] === -1) {
-						grid[y + 1][x] = grid[y][x];
-						grid[y][x] = -1;
+	} else if(direction === DIRECTION.down) {
+		for(x = 0; x < SIZE_X; x++) {
+			idx = SIZE_Y - 1;
+			for(y = SIZE_Y-2; y >= 0; y--) {
+				if(matrixValue[y][x] !== -1) {
+					if(matrixValue[idx][x] === -1){
+						matrixValue[idx][x] = matrixValue[y][x];
+						matrixValue[y][x] = -1;
+					} else if(matrixValue[idx][x] === matrixValue[y][x]) {
+						scoreManager.addScore(matrixValue[idx][x]);
+						matrixValue[idx--][x] *= 2;
+						matrixValue[y][x] = -1;
+					} else if(--idx !== y){
+						matrixValue[idx][x] = matrixValue[y][x];
+						matrixValue[y][x] = -1;
 					}
 				}
 			}
@@ -108,76 +147,116 @@ function moveGrid(direction) {
 	}
 
 	spawnRand();
-	updateGrid();
-	getScore();
+	updateGridDisplay();
+	
+	scoreManager.updateBonusScore();
 }
 
-// SCORE FUNCTIONS
 
-function calcScore(n) {
-	if(n === 2)
-		return 2;
-	else if(n === 4)
-		return 5;
-	else if(n === 8)
-		return 10;
-	else if(n === 16)
-		return 25;
-	else if(n === 32)
-		return 50;
-	else if(n === 64)
-		return 125;
-	else if(n === 128)
-		return 250;
-	else if(n === 256)
-		return 500;
-	else if(n === 512)
-		return 1000;
-	else if(n === 1024)
-		return 2000;
-	else if(n === 2048)
-		return 4000;
-	else if(n === 4096)
-		return 8000;
-	else if(n === 8192)
-		return 16000;
-	else if(n === 16384)
-		return 32500;
-	else
-		return 0;
-}
 
-function addScore(block) {
-	score += calcScore(block);
-}
+var maxValueDigitsIncreased = false;
+var lastMaxValueDigits = 1;
 
-function getScore() {
-	var x, y;
-
-	sum = 0;
-
-	for(y = 0; y < 4; y++) {
-		for(x = 0; x < 4; x++) {
-			if(grid[y][x] !== -1)
-				sum += grid[y][x];
-		}
+function createScoreManager() {
+	
+	
+	function getBest() {
+		best = localStorage.getItem("2048best");
 	}
 
-	updateScore();
+	function setBest(n) {
+		localStorage.setItem("2048best", n);
+		best = n;
+	}
+
+	function updateBest() {
+		if(best < (baseScore + bonusScore))
+			setBest(baseScore + bonusScore);
+
+		bestElem.innerHTML = best + "pts";
+	}
+	
+	function initScore() {
+		total_spawn = 0;
+		baseScore = 0;
+		bonusScore = 0;
+		this.updateScore();
+	}
+
+	function initBest() {
+		if(localStorage.getItem("2048best") === undefined) {
+			setBest(0);
+		}	
+		getBest();
+	}
+	
+	
+	var baseScore = 0;
+	var bonusScore = 0;
+	
+	var scoreElem = document.getElementById("p_score");
+
+	var score_manager = new Object();
+	
+	score_manager.addScore = function(n) {
+		var num = n;
+		var score = 2;
+		 n /= 2;
+		 var idx = 1;
+		while(n != 1) {
+			if(idx++ %2 == 1) {
+				score *= 2.5; 
+			} else {
+				score *= 2; 
+			}
+			n /= 2;
+		}
+		console.log("num %d, score:d.", num, score);
+		baseScore += score;
+	};
+	
+	score_manager.updateBonusScore = function() {
+		var x, y, maxValue = 2;
+		bonusScore = 0;
+		for(y = 0; y < SIZE_Y; y++) {
+			for(x = 0; x < SIZE_X; x++) {
+				if(matrixValue[y][x] !== -1) {
+					bonusScore += matrixValue[y][x];
+					if(matrixValue[y][x] > maxValue) {
+						maxValue = matrixValue[y][x];
+					}
+				}
+			}
+		}
+		maxValue = "" + maxValue;
+		if(maxValue.length > lastMaxValueDigits) {
+			lastMaxValueDigits = maxValue.length;
+			maxValueDigitsIncreased = true;
+			updateDigitalFontSize();
+		}
+		currentSumLabel.innerHTML = bonusScore;
+		this.updateScore();
+	};
+	
+	score_manager.updateScore = function() {
+		scoreElem.innerHTML = (baseScore + bonusScore) + "pts";
+		updateBest();
+		updateLevel();
+	};
+	
+	
+	score_manager.init = function() {
+		initScore();
+		initBest();
+	};
+	
+	
+	return score_manager;
 }
 
-function updateScore() {
-	shareElem.href = "https://twitter.com/home?status=Got%20a%20score%20of%20" + (score + sum) + "%20on%20%232048%20saming.fr/p/2048";
 
-	scoreElem.innerHTML = (score + sum) + "pts";
-
-	updateBest();
-
-	updateLevel();
-}
 
 // LEVEL FUNCTIONS
-
 function getLevelText(lvl) {
 	if(lvl === 1) // 4+
 		return "Welcome newbie";
@@ -204,7 +283,7 @@ function getLevelText(lvl) {
 }
 
 function updateLevel() {
-	level = Math.floor(Math.log(score + sum) / Math.log(4));
+	level = Math.floor(Math.log(baseScore + bonusScore) / Math.log(4));
 
 	if(level > 10)
 		level = 10;
@@ -217,63 +296,49 @@ function updateLevel() {
 	levelBar.style.width = (level * 10) + "%";
 }
 
-// BEST SCORE FUNCTIONS
-
-function getBest() {
-	best = localStorage.getItem("2048best");
-}
-
-function setBest(n) {
-	localStorage.setItem("2048best", n);
-	best = n;
-}
-
-function updateBest() {
-	if(best < (score + sum))
-		setBest(score + sum);
-
-	bestElem.innerHTML = best + "pts";
-}
-
 // GAME OVER FUNCTIONS
-
 function gameOver() {
-	gridElem.setAttribute("class", "over");
+	matrixGrid.setAttribute("class", "over");
 	console.log("LOL");
 }
 
-// UTIL FUNCTIONS
 
+// UTIL FUNCTIONS
 function keyPress(code) {
+	console.log("Key:", code);
 	if(code === 37 || code === 74)
-		moveGrid(3); // left
+		moveGrid(DIRECTION.left); // left
 	else if(code === 38 || code === 73)
-		moveGrid(1); // up
+		moveGrid(DIRECTION.up); // up
 	else if(code === 39 || code === 76)
-		moveGrid(2); // right
+		moveGrid(DIRECTION.right); // right
 	else if(code === 40 || code === 75)
-		moveGrid(4); // down
+		moveGrid(DIRECTION.down); // down
 	else if(code === 13)
-		init(); // reinit
+		initGame(); // reinit
 }
+
 
 function spawnRand() {
 	var x, y, possibles = [];
 
-	for(y = 0; y < 4; y++) {
-		for(x = 0; x < 4; x++) {
-			if(grid[y][x] === -1)
+	for(y = 0; y < SIZE_Y; y++) {
+		for(x = 0; x < SIZE_X; x++) {
+			if(matrixValue[y][x] === -1)
 				possibles.push([x, y]);
 		}
 	}
 
 	if(possibles.length) {
-		var randomValue = (Math.floor(Math.random() * 9) === 8 ? 4 : 2),
+		for(var i=0; i<possibles.length/5; i++) {
+			var randomValue = (Math.floor(Math.random() * 9) === 8 ? 4 : 2),
 			randomBlock = possibles[(Math.floor(Math.random() * possibles.length))],
 			x = randomBlock[0],
 			y = randomBlock[1];
-
-		grid[y][x] = randomValue;
+			matrixValue[y][x] = randomValue;
+			total_spawn += randomValue;
+		}
+		ramdomSumLabel.innerHTML = total_spawn;
 	} else {
 		if(!checkMovable()) {
 			gameOver();
@@ -282,13 +347,13 @@ function spawnRand() {
 }
 
 function checkMovable() {
-	for(y = 0; y < 4; y++) {
-		for(x = 0; x < 4; x++) {
-			if((grid[y + 1] !== undefined &&
-					(grid[y + 1][x] === grid[y][x] || grid[y + 1][x] == -1)) ||
-				 (grid[y][x + 1] !== undefined &&
-				 	(grid[y][x + 1] === grid[y][x] || grid[y][x + 1] == -1)) ||
-				  grid[y][x] == -1)
+	for(y = 0; y < SIZE_Y; y++) {
+		for(x = 0; x < SIZE_X; x++) {
+			if((matrixValue[y + 1] !== undefined &&
+					(matrixValue[y + 1][x] === matrixValue[y][x] || matrixValue[y + 1][x] == -1)) ||
+				 (matrixValue[y][x + 1] !== undefined &&
+				 	(matrixValue[y][x + 1] === matrixValue[y][x] || matrixValue[y][x + 1] == -1)) ||
+				  matrixValue[y][x] == -1)
 				return true;
 		}
 	}
@@ -296,48 +361,105 @@ function checkMovable() {
 	return false;
 }
 
+
 // INIT FUNCTIONS
 
-function initScore() {
-	score = 0, sum = 0;
 
-	updateScore();
+function initMatrix() {
+	matrixValue = new Array();
+	for(var y = 0; y < SIZE_Y; y++) {
+		matrixValue[y]=new Array();
+		for(var x = 0; x < SIZE_X; x++){
+			matrixValue[y][x] = -1;
+		}
+	}
 }
-
-function initBest() {
-	if(localStorage.getItem("2048best") === undefined)
-		setBest(0);
-
-	getBest();
-}
-
-function initGrid() {
-	grid = [[-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1], [-1, -1, -1, -1]];
-
+function initGridMatrix() {
+	initMatrix();
 	spawnRand();
 	spawnRand();
-
-	updateGrid();
+	updateGridDisplay();
 }
 
-function init() {
-	gridElem.removeAttribute("class");
-
-	initScore();
-	initBest();
-	initGrid();
+function initGame() {
+	matrixGrid.removeAttribute("class");
+	scoreManager.init();
+	
+	initGridMatrix();
 }
 
-// INITIAL SETUP
 
-document.onkeydown = function(e) { keyPress(e.keyCode); }
+function updateDigitalFontSize() {
+	if(maxValueDigitsIncreased) {
+		//fontSize *= (lastMaxValueDigits-1)/lastMaxValueDigits;
+		fontSize *= 0.8;
+		 
+		console.log("FontSize:", fontSize);
+		var divs = matrixGrid.children;
+		for(var i=0; i< divs.length; i++) {
+			if(divs[i].nodeType == 1) {
+				divs[i].style.fontSize = fontSize + "px";
+			}
+		}
+		maxValueDigitsIncreased = false;
+	}
+		
+}
 
-document.getElementsByTagName("header")[0].getElementsByTagName("a")[0].onclick = init;
+function createGridElement() {
+	if(matrixGrid.childNodes.length == SIZE_X * SIZE_Y) {
+		console.log("grid is ready!");
+		return;
+	}
+	var width =  matrixGrid.offsetWidth / SIZE_X;
+	var height = matrixGrid.offsetHeight / SIZE_Y;
+	//console.log(matrixGrid.width, matrixGrid.height);
+	
+	while(matrixGrid.firstChild) {
+		matrixGrid.removeChild(matrixGrid.firstChild);
+	}
+	fontSize = width * 0.7;
+	console.log("init font size:", fontSize);
+	for(var y = 0; y < SIZE_Y; y++) {
+		for(var x = 0; x < SIZE_X; x++) {
+			var div_ele = document.createElement("div");
+			div_ele.style.width = width * 0.957 + "px";
+			div_ele.style.height = height * 0.957 + "px";
+			div_ele.style.marginLeft = width * 0.03 + "px";
+			div_ele.style.marginTop = height * 0.03 + "px";
+			div_ele.style.fontSize = fontSize + "px";
+			//console.log("grid width:%d, width:%d, total width:%d, height:%d,  div width:%s, height:%s, marginleft:%s, marginTop:%s", 
+			//matrixGrid.offsetWidth, matrixGrid.offsetHeight, width, height, div_ele.style.width, div_ele.style.height, div_ele.style.marginLeft, div_ele.style.marginTop);
+			matrixGrid.appendChild(div_ele);
+		}
+	}
+	console.log("grid create success!");
+}
 
-touchElem.getElementsByTagName("div")[0].onclick = function() { moveGrid(1); }
-touchElem.getElementsByTagName("div")[1].onclick = function() { moveGrid(3); }
-touchElem.getElementsByTagName("div")[2].onclick = function() { moveGrid(2); }
-touchElem.getElementsByTagName("div")[3].onclick = function() { moveGrid(4); }
 
-initGrid();
-initBest();
+function windowInit() {
+	document.onkeydown = function(e) { keyPress(e.keyCode); }
+
+	document.getElementById("try_again").onclick = initGame;
+
+	document.getElementById("btn_ok").onclick = function() {
+		SIZE_X = SIZE_Y = parseInt(document.getElementById("input_size").value);
+		console.log(document.getElementById("input_size").value);
+		console.log("size:%d.", SIZE_X);
+		createGridElement();
+		initGame();
+		scoreManager.init();
+	}
+	elem_touch.getElementsByTagName("div")[0].onclick = function() { moveGrid(1); }
+	elem_touch.getElementsByTagName("div")[1].onclick = function() { moveGrid(3); }
+	elem_touch.getElementsByTagName("div")[2].onclick = function() { moveGrid(2); }
+	elem_touch.getElementsByTagName("div")[3].onclick = function() { moveGrid(4); }
+
+	createGridElement();
+	initGame();
+	scoreManager.init();
+}
+
+var scoreManager = createScoreManager();
+
+windowInit();
